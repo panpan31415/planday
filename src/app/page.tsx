@@ -8,7 +8,6 @@ type Image = {
   imagePath: string;
 }
 
-
 const images: Image[] = [
   {
     title: 'Level up',
@@ -133,22 +132,24 @@ const images: Image[] = [
 ]
 
 type GetImagesParams = {
-  page?: number, size?: number
+  page?: number, numberPerPage?: number
 }
 
 type Reponse = {
   data: Image[],
   maxPage: number
 }
+
+// I want to simulate the http request so I returned promise here.
 function getImages({
-  page, size
+  page, numberPerPage
 }: GetImagesParams): Promise<Reponse> {
 
   let data = images;
   let maxPage = 1;
-  if (page && size) {
-    data = images.slice((page - 1) * size, page * size)
-    maxPage = Math.ceil(images.length / size)
+  if (page && numberPerPage) {
+    data = images.slice((page - 1) * numberPerPage, page * numberPerPage)
+    maxPage = Math.ceil(images.length / numberPerPage)
   }
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -159,12 +160,11 @@ function getImages({
   })
 }
 
-
-function searchImage(keyward: string): Promise<{ images: Image[] }> {
+function searchImage(searchText: string): Promise<{ images: Image[] }> {
   let searchImages = images;
-  if (keyward) {
+  if (searchText) {
     searchImages = images.filter((image) => {
-      return image.title.toLowerCase().includes(keyward.toLowerCase()) || image.description.toLowerCase().includes(keyward.toLowerCase())
+      return image.title.toLowerCase().includes(searchText.toLowerCase()) || image.description.toLowerCase().includes(searchText.toLowerCase())
     })
   }
   return new Promise((resolve, reject) => {
@@ -178,7 +178,7 @@ function searchImage(keyward: string): Promise<{ images: Image[] }> {
 
 
 export default function Home() {
-  const [size, setSize] = useState(6)
+  const [numberPerPage, setNumberPerPage] = useState(5)
   const [page, setPage] = useState(1)
   const [maxPage, setMaxPage] = useState(1)
   const [currentImages, setCurrentIamegs] = useState<Image[]>([])
@@ -187,24 +187,24 @@ export default function Home() {
 
   useEffect(() => {
     setPage(1)
-  }, [size])
+  }, [numberPerPage])
 
   useEffect(() => {
     (async () => {
       setIsLoading(true);
       try {
         const response = await getImages({
-          page, size
+          page, numberPerPage: numberPerPage
         })
         setCurrentIamegs(() => response.data)
         setMaxPage(() => response.maxPage)
       } catch (error) {
-        // handle error
+        // handle error, such as: Sentry.captureException(error)
       } finally {
         setIsLoading(false)
       }
     })()
-  }, [page, size])
+  }, [page, numberPerPage])
 
   const search = async () => {
     try {
@@ -275,6 +275,8 @@ export default function Home() {
           </div>
         }) : "No Result Found with " + searchText)}
       </div>
+
+      {/* pagination controlls */}
       {searchText ? null : <div style={{
         display: "flex",
         justifyContent: "space-between",
@@ -288,9 +290,9 @@ export default function Home() {
             marginRight: "5px",
             textAlign: "center"
           }}
-            value={size}
+            value={numberPerPage}
             type="number"
-            onChange={(event) => { setSize(parseInt(event.target.value)) }}>
+            onChange={(event) => { setNumberPerPage(parseInt(event.target.value)) }}>
           </input>images/page
         </div>
 
